@@ -2,24 +2,24 @@
 
 namespace BitolaCo\Silex;
 
-use Silex\Application;
-use Silex\ServiceProviderInterface;
+use Pimple\ServiceProviderInterface;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use Illuminate\Events\Dispatcher;
 use Illuminate\Container\Container;
-use Illuminate\Cache\CacheManager; 
+use Illuminate\Cache\CacheManager;
+use Silex\Application;
 
 class CapsuleServiceProvider implements ServiceProviderInterface
 {
     /**
      * Register the Capsule service.
      *
-     * @param Application $app
-     **/
-    public function register(Application $app)
+     * @param \Pimple\Container $app
+     */
+    public function register(\Pimple\Container $app)
     {
     	
-    	$app['capsule.connection_defaults'] = array(
+    	$app['capsule.connection_defaults'] = [
     			'driver' => 'mysql',
     			'host' => 'localhost',
     			'database' => null,
@@ -29,25 +29,25 @@ class CapsuleServiceProvider implements ServiceProviderInterface
     			'collation' => 'utf8_unicode_ci',
     			'prefix' => null,
     			'logging' => false,
-    	);
+        ];
     	
     	$app['capsule.global'] = true;
     	$app['capsule.eloquent'] = true;
-    	$app['capsule.container'] = $app->share(function() {
+    	$app['capsule.container'] = function() {
     		return new Container;
-    	});
+    	};
     	
-    	$app['capsule.dispatcher'] = $app->share(function() use($app) {
+    	$app['capsule.dispatcher'] = function($app) {
     		return new Dispatcher($app['capsule.container']);
-    	});
+    	};
     	
     	if (class_exists('Illuminate\Cache\CacheManager')) {
-    		$app['capsule.cache_manager'] = $app->share(function() use($app) {
+    		$app['capsule.cache_manager'] = function($app) {
     			return new CacheManager($app['capsule.container']);
-    		});
+    		};
     	}
     	
-    	$app['capsule'] = $app->share(function($name) use ($app) {
+    	$app['capsule'] = function($app) {
     		
     		$capsule = new Capsule($app['capsule.container']);
     		$capsule->setEventDispatcher($app['capsule.dispatcher']);
@@ -64,9 +64,9 @@ class CapsuleServiceProvider implements ServiceProviderInterface
     			$capsule->bootEloquent();
     		}
     		if (! isset($app['capsule.connections'])) {
-    			$app['capsule.connections'] = array(
-    					'default' => (isset($app['capsule.connection']) ? $app['capsule.connection'] : array()),
-    			);
+    			$app['capsule.connections'] = [
+    					'default' => (isset($app['capsule.connection']) ? $app['capsule.connection'] : []),
+                ];
     		}
     		foreach ($app['capsule.connections'] as $connection => $options) {
     			$options = array_replace($app['capsule.connection_defaults'], $options);
@@ -82,7 +82,7 @@ class CapsuleServiceProvider implements ServiceProviderInterface
     		
     		return $capsule;
     		
-    	});
+    	};
     	
     }
 
